@@ -17,32 +17,35 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Slf4j
 @Service
 public class AccountInfoService {
-    public static Boolean getAccountName(BankRequestDto bankRequestDto) {
+    public static Boolean getAccountName(AccountRequestDto accountRequestDto) {
 
         String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
 
-        String key = bankRequestDto.getKEY();
-        String secr_key = bankRequestDto.getSECR_KEY();
-        String char_set = bankRequestDto.getCHAR_SET();
-        List<AccountRequestDto> dto2 = bankRequestDto.getREQ_DATA();
-        String bank_cd = dto2.get(0).getBANK_CD();
-        String search_acct_no = dto2.get(0).getSEARCH_ACCT_NO();
-        String acnm_no = dto2.get(0).getACNM_NO();
-        String iche_amt = dto2.get(0).getICHE_AMT();
-        String trsc_seq_no = randomCode(7);
-        String name = dto2.get(0).getNAME();
+        AccountRequestDto dto = AccountRequestDto.builder()
+                .BANK_CD(getBankCode(accountRequestDto.getBANK_CD()))
+                .SEARCH_ACCT_NO(accountRequestDto.getSEARCH_ACCT_NO())
+                .ACNM_NO(accountRequestDto.getACNM_NO())
+                .ICHE_AMT(accountRequestDto.getICHE_AMT())
+                .TRSC_SEQ_NO( randomCode(7))
+                .NAME(accountRequestDto.getNAME())
+                .build();
 
-        bank_cd = getBankCode(bank_cd);
+        ArrayList <AccountRequestDto> tmp = new ArrayList<>();
+        tmp.add(dto);
 
-        String req = "{\"SECR_KEY\":\""+secr_key+"\",\"KEY\":\""+key+"\"," +
-                "\"DOMN\":\"https://dev2.coocon.co.kr:8443/sample_acctnm_rcms_kib.jsp\",\"TRG\":\"\",\"SORT\":\"\"," + "\"PG_PER_CNT\":\"\",\"PG_NO\":\"\"," +
-                "\"REQ_DATA\":[{\"BANK_CD\":\""+bank_cd+"\"," +
-                "\"SEARCH_ACCT_NO\":\""+search_acct_no+"\",\"ACNM_NO\":\""+acnm_no+"\"," +
-                "\"ICHE_AMT\":\""+iche_amt+"\",\"TRSC_SEQ_NO\":\""+trsc_seq_no+"\"}]}\n";
+        BankRequestDto bankRequestDto = BankRequestDto.builder()
+                .KEY("ACCTTEST")
+                .SECR_KEY("ACCTNM_RCMS_WAPI")
+                .CHAR_SET("UTF-8")
+                .REQ_DATA(tmp)
+                .build();
+
+
+        String req = bankRequestDto.toString();
 
         String domain = url + req;
         String accountName = getAccountInfo(domain);
-        if (name.equals(accountName)){
+        if (dto.getNAME().equals(accountName)){
             log.info("계좌 조회에 성공했습니다.");
             return true;
         }
