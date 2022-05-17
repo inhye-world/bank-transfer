@@ -11,4 +11,5 @@ public class AccountRequestDto {
     private String ACNM_NO;
     private String ICHE_AMT;
     private String TRSC_SEQ_NO;
+    private String NAME;
 }
