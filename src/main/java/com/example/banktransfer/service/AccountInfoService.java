@@ -8,6 +8,8 @@ import java.io.*;
 import javax.net.ssl.HttpsURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,6 +31,9 @@ public class AccountInfoService {
         String iche_amt = dto2.get(0).getICHE_AMT();
         String trsc_seq_no = randomCode(7);
         String name = dto2.get(0).getNAME();
+
+        bank_cd = getBankCode(bank_cd);
+
         String req = "{\"SECR_KEY\":\""+secr_key+"\",\"KEY\":\""+key+"\"," +
                 "\"DOMN\":\"https://dev2.coocon.co.kr:8443/sample_acctnm_rcms_kib.jsp\",\"TRG\":\"\",\"SORT\":\"\"," + "\"PG_PER_CNT\":\"\",\"PG_NO\":\"\"," +
                 "\"REQ_DATA\":[{\"BANK_CD\":\""+bank_cd+"\"," +
@@ -95,5 +100,17 @@ public class AccountInfoService {
             rdStr = sb.toString();
         }
         return rdStr;
+    }
+
+    public static String getBankCode(String bank_cd){
+        HashMap<String,String> bankList = new HashMap<String, String>() {
+            {
+                put("산업", "002");put("기업", "003");put("국민", "004");put("외환", "005");put("수협", "007");
+                put("농협", "011");put("우리", "020");put("제일", "023");put("씨티", "027");put("대구", "031");
+                put("부산", "032");put("광주", "034");put("제주", "035");put("전북", "037");put("경남", "039");
+                put("금고", "045");put("신협", "048");put("우체국", "071");put("하나", "081");put("신한", "088");
+            }
+        };
+        return bankList.get(bank_cd);
     }
 }
