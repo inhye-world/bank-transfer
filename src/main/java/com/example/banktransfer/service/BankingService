@@ -1,0 +1,87 @@
+package com.example.banktransfer.service;
+
+import antlr.StringUtils;
+import com.example.banktransfer.dto.AccountRequestDto;
+import com.example.banktransfer.dto.BankRequestDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+@Service
+@PropertySource("classpath:application.properties")
+@Component
+@Slf4j
+public class BankingService {
+    String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
+
+    BankRequestDto bankRequestDto;
+    public boolean getAccountUsername() throws IOException {
+        String trscSeqNo = randomCode(7);
+        String bankingUrl = url + "{\"SECR_KEY\":\"ACCTTEST\",\"KEY\":\"ACCTNM_RCMS_WAPI\",\"DOMN\":\"https://dev2.coocon.co.kr:8443/sample_acctnm_rcms_kib.jsp\",\"TRG\":\"\",\"SORT\":\"\",\"PG_PER_CNT\":\"\",\"PG_NO\":\"\",\"REQ_DATA\":[{\"BANK_CD\":\"088\",\"SEARCH_ACCT_NO\":\"110516138902\",\"ACNM_NO\":\"931028\",\"ICHE_AMT\":\"0\",\"TRSC_SEQ_NO\":\"" + trscSeqNo + "\"}]}";
+        ObjectMapper mapper = new ObjectMapper();
+        boolean result = true;
+
+        try {
+            URL url = new URL(bankingUrl);
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "EUC-KR"));
+            StringBuffer buffer = new StringBuffer();
+            //String response  = StringUtils.EMPTY;
+            String response = "";
+            JsonNode node = null;
+
+            while((response  = br.readLine()) != null){
+                ObjectMapper objMap = new ObjectMapper();
+                node = objMap.readTree(response);
+
+                String resultCd = node.get("RSLT_CD").toString();
+                String resultMsg = node.get("RSLT_MSG").toString();
+                log.info("resultCd : {}, resultMsg : {}", resultCd, resultMsg);
+
+                if(resultCd.equals("\"000\"")){
+                    String acctName = node.get("RESP_DATA").get(0).get("ACCT_NM").toString();
+                    log.info("{}남의 계좌", acctName);
+                }else {
+                    log.info("계좌 실명조회에 실패했습니다.");
+                    result = false;
+                }
+            }
+
+            br.close();
+            log.info(buffer.toString());
+        } catch (MalformedURLException e) {
+            log.info("MalformedURLException");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public String randomCode(int length){
+        String rdStr = "";
+
+        StringBuffer sb = new StringBuffer();
+        Random rn = new Random();
+
+        for(int i = 0; i < length; i++){
+            sb.append(rn.nextInt(10));
+            rdStr = sb.toString();
+        }
+        return rdStr;
+    }
+}
