@@ -26,7 +26,7 @@ public class AccountInfoService {
                 .SEARCH_ACCT_NO(accountRequestDto.getSEARCH_ACCT_NO())
                 .ACNM_NO(accountRequestDto.getACNM_NO())
                 .ICHE_AMT(accountRequestDto.getICHE_AMT())
-                .TRSC_SEQ_NO( randomCode(7))
+                .TRSC_SEQ_NO(makeTimeSeqNo())
                 .NAME(accountRequestDto.getNAME())
                 .build();
 
@@ -92,17 +92,14 @@ public class AccountInfoService {
         return jsonNode;
     }
 
-    public static String randomCode(int length){
-        String rdStr = "";
+    public static String makeTimeSeqNo(){
+        SimpleDateFormat sd = new SimpleDateFormat("HHmmss");
+        String sdFormat = sd.format(System.currentTimeMillis());
+        sdFormat += "0";
 
-        StringBuffer sb = new StringBuffer();
-        Random rn = new Random();
+        log.info("sdFormat..... {}", sdFormat);
 
-        for(int i = 0; i < length; i++){
-            sb.append(rn.nextInt(10));
-            rdStr = sb.toString();
-        }
-        return rdStr;
+        return sdFormat;
     }
 
     public static String getBankCode(String bank_cd){
