@@ -1,23 +1,25 @@
 package com.example.banktransfer.service;
 import com.example.banktransfer.dto.AccountRequestDto;
 import com.example.banktransfer.dto.BankRequestDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.io.*;
 import javax.net.ssl.HttpsURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
 import com.fasterxml.jackson.databind.JsonNode;
-
 @Slf4j
 @Service
 public class AccountInfoService {
-    public static Boolean getAccountName(AccountRequestDto accountRequestDto) {
+
+
+    public static Boolean getAccountName(AccountRequestDto accountRequestDto) throws JsonProcessingException {
 
         String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
 
@@ -29,22 +31,41 @@ public class AccountInfoService {
                 .TRSC_SEQ_NO(makeTimeSeqNo())
                 .NAME(accountRequestDto.getNAME())
                 .build();
-
         ArrayList <AccountRequestDto> tmp = new ArrayList<>();
         tmp.add(dto);
-
         BankRequestDto bankRequestDto = BankRequestDto.builder()
-                .KEY("ACCTTEST")
-                .SECR_KEY("ACCTNM_RCMS_WAPI")
+                .KEY("ACCTNM_RCMS_WAPI")
+                .SECR_KEY("ACCTTEST")
                 .CHAR_SET("UTF-8")
                 .REQ_DATA(tmp)
                 .build();
 
 
-        String req = bankRequestDto.toString();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode finalDto = mapper.convertValue(bankRequestDto,JsonNode.class);
+        ObjectNode object = (ObjectNode) finalDto;
 
+        object.set("SECR_KEY", finalDto.get("secr_KEY"));   object.remove("secr_KEY");
+        object.set("KEY", finalDto.get("key"));             object.remove("key");
+        object.set("CHAR_SET", finalDto.get("char_SET"));   object.remove("char_SET");
+        object.set("REQ_DATA", finalDto.get("req_DATA"));   object.remove("req_DATA");
+
+        JsonNode accountDto = object.get("REQ_DATA").get(0);
+        object = (ObjectNode) accountDto;
+        object.set("TRSC_SEQ_NO", accountDto.get("trsc_SEQ_NO")); object.remove("trsc_SEQ_NO");
+        object.set("BANK_CD", accountDto.get("bank_CD"));         object.remove("bank_CD");
+        object.set("SEARCH_ACCT_NO", accountDto.get("search_ACCT_NO")); object.remove("search_ACCT_NO");
+        object.set("ACNM_NO", accountDto.get("acnm_NO"));         object.remove("acnm_NO");
+        object.set("ICHE_AMT", accountDto.get("iche_AMT")); object.remove("iche_AMT");
+        object.set("NAME", accountDto.get("name"));         object.remove("name");
+
+        String req = mapper.writeValueAsString(finalDto);
+        //String req = mapper.writeValueAsString(bankRequestDto).toUpperCase();
         String domain = url + req;
+        log.info(domain);
+
         String accountName = getAccountInfo(domain);
+
         if (dto.getNAME().equals(accountName)){
             log.info("계좌 조회에 성공했습니다.");
             return true;
@@ -80,7 +101,7 @@ public class AccountInfoService {
 
     public static JsonNode getReturnNode( HttpsURLConnection connection ) throws IOException {
         BufferedReader in = new BufferedReader( new InputStreamReader(
-                connection.getInputStream(), "EUC-KR" ) );
+                connection.getInputStream(), "UTF-8" ) );
         StringBuffer buffer = new StringBuffer();
         String decodedString;
         while( ( decodedString = in.readLine() ) != null ) {
@@ -113,5 +134,41 @@ public class AccountInfoService {
             }
         };
         return bankList.get(bank_cd);
+    }
+
+    public static Integer getBalance() {
+        String SECR_KEY;
+        String KEY;
+        String TRT_INST_CD;
+        String BANK_CD;
+        String TRSC_SEQ_NO;
+
+        String domain = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData=";
+        String req = "{\"SECR_KEY\":\"LYgZORKYJ9FtneV5XMwN\",\"KEY\":\"6140\",\"TRT_INST_CD\":\"02042091\",\"BANK_CD\":\"020\",\"TRSC_SEQ_NO\":\"114145666120\"}";
+        domain += req;
+
+        String WDRW_CAN_AMT = null;
+        try {
+            URL url = new URL(domain);
+            HttpsURLConnection http = (HttpsURLConnection) url.openConnection();
+            http.setRequestMethod("GET");
+            http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            System.out.println(http.getResponseCode() + " " + http.getResponseMessage());
+
+            JsonNode jsonNode = getReturnNode(http);
+            System.out.println(jsonNode);
+
+            String code = jsonNode.get("RESP_CD").toString().substring(1, jsonNode.get("RESP_CD").toString().length() - 1);
+            String completed = "0000";
+
+            if (completed.equals(code)) {
+                WDRW_CAN_AMT = jsonNode.get("WDRW_CAN_AMT").toString().substring(1, jsonNode.get("WDRW_CAN_AMT").toString().length() - 1);
+                Integer.parseInt(WDRW_CAN_AMT);
+            }
+        } catch (MalformedURLException e) {
+            System.out.println("MalformedURLException");
+        } catch (IOException e) {
+        }
+        return Integer.parseInt(WDRW_CAN_AMT);
     }
 }
