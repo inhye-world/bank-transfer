@@ -2,7 +2,6 @@ package com.example.banktransfer.service;
 import com.example.banktransfer.common.Constants;
 import com.example.banktransfer.dto.AccountRequestDto;
 import com.example.banktransfer.dto.BankRequestDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,14 +17,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Slf4j
 @Service
 public class AccountInfoService {
-    //static String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
     static String url = Constants.ACCTNM_URL;
     static String vapgUrl = Constants.VAPG_URL;
+    static String ACCTNM_SECR_KEY = Constants.ACCTNM_SECR_KEY;
+    static String ACCTNM_KEY = Constants.ACCTNM_KEY;
+    static String ACCTNM_CHAR_SET = Constants.ACCTNM_CHAR_SET;
 
-    public static JsonNode setConnection(String domain) {
-    static String SECR_KEY = Constants.VAPG_SECR_KEY;
+    static String VAPG_SECR_KEY = Constants.VAPG_SECR_KEY;
+
+    static String[] VAPG_KEY;
     static String TRT_INST_CD = Constants.TRT_INST_CD;
     static  String BANK_CD = Constants.BANK_CD;
+    public static JsonNode setConnection(String domain) {
+
         try {
             URL url = new URL(domain);
             HttpsURLConnection http = (HttpsURLConnection) url.openConnection();
@@ -84,9 +88,9 @@ public class AccountInfoService {
         ArrayList<AccountRequestDto> tmp = new ArrayList<>();
         tmp.add(dto);
         BankRequestDto bankRequestDto = BankRequestDto.builder()
-                .key("ACCTNM_RCMS_WAPI")
-                .secr_key("ACCTTEST")
-                .char_set("UTF-8")
+                .key(ACCTNM_KEY)
+                .secr_key(ACCTNM_SECR_KEY)
+                .char_set(ACCTNM_CHAR_SET)
                 .req_data(tmp)
                 .build();
 
@@ -143,21 +147,14 @@ public class AccountInfoService {
     }
 
     public static Integer getBalance() {
-        String KEY = Constants.VAPG_KEY[2];
         String TRSC_SEQ_NO;
 
-        String req = "{\"SECR_KEY\":\""+SECR_KEY+"\",\"KEY\":\""+KEY+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"114145669120\"}";
+        String req = "{\"SECR_KEY\":\""+VAPG_SECR_KEY+"\",\"KEY\":\""+VAPG_KEY[2]+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"114145669120\"}";
         vapgUrl += req;
         log.info("vapgUrl... getBalance {}", vapgUrl);
 
         String domain = url + req;
         String WDRW_CAN_AMT = null;
-        try {
-            URL url = new URL(domain);
-            HttpsURLConnection http = (HttpsURLConnection) url.openConnection();
-            http.setRequestMethod("GET");
-            http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            System.out.println(http.getResponseCode() + " " + http.getResponseMessage());
 
         JsonNode result = setConnection(domain);
         String code = result.get("RESP_CD").toString().substring(1, result.get("RESP_CD").toString().length() - 1);
@@ -169,25 +166,20 @@ public class AccountInfoService {
         return 0;
     }
 
-    public static void transferMoney() {
-        String KEY = Constants.VAPG_KEY[0];
+    public static boolean sendMoney() {
         String WDRW_ACCT_NO = Constants.WDRW_ACCT_NO;
         String WDRW_ACCT_NM = Constants.WDRW_ACCT_NM;
 
-    public static boolean sendMoney() {
-        String domain = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData={\"SECR_KEY\":\"LYgZORKYJ9FtneV5XMwN\",\"KEY\":\"6120\",\"TRT_INST_CD\":\"02042091\",\"BANK_CD\":\"020\",\"TRSC_SEQ_NO\":\"653653753245\",\"RCV_BNK_CD\":\"004\",\"RCV_ACCT_NO\":\"87050100045847\",\"WDRW_ACCT_NO\":\"0000000000000000\",\"TRSC_AMT\":\"10\",\"WDRW_ACCT_NM\":\"류인혜\"}";
-        ;
+        vapgUrl += "{\"SECR_KEY\":\""+VAPG_SECR_KEY+"\",\"KEY\":\""+VAPG_KEY[0]+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"693653753245\",\"RCV_BNK_CD\":\"004\",\"RCV_ACCT_NO\":\"87050100045847\",\"WDRW_ACCT_NO\":\""+WDRW_ACCT_NO+"\",\"TRSC_AMT\":\"10\",\"WDRW_ACCT_NM\":\""+WDRW_ACCT_NM+"\"}";
+
+        String domain = vapgUrl;
         JsonNode result = setConnection(domain);
+        log.info("tranferMoney {}", domain);
+
         String code = result.get("RESP_CD").toString().substring(1, result.get("RESP_CD").toString().length() - 1);
         String msg = result.get("RESP_MSG").toString().substring(1, result.get("RESP_MSG").toString().length() - 1);
         log.info("RESP_CD : {}, RESP_MSG : {}", code, msg);
         String completed = "0000";
-        vapgUrl += "{\"SECR_KEY\":\""+SECR_KEY+"\",\"KEY\":\""+KEY+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"693653753245\",\"RCV_BNK_CD\":\"004\",\"RCV_ACCT_NO\":\"87050100045847\",\"WDRW_ACCT_NO\":\""+WDRW_ACCT_NO+"\",\"TRSC_AMT\":\"10\",\"WDRW_ACCT_NM\":\""+WDRW_ACCT_NM+"\"}";
-        log.info("vapgUrl...tranferMoney {}", vapgUrl);
-
-        boolean transferRes = getTranferInfo(vapgUrl);
-    }
-
         if (completed.equals(code)) {
             String rcvAccount = result.get("RCV_ACCT_NO").toString().substring(1, result.get("RCV_ACCT_NO").toString().length() - 1);
             String acctName = result.get("RCV_ACCT_NM").toString().substring(1, result.get("RCV_ACCT_NM").toString().length() - 1);
