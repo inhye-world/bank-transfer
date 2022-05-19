@@ -1,4 +1,5 @@
 package com.example.banktransfer.service;
+import com.example.banktransfer.common.Constants;
 import com.example.banktransfer.dto.AccountRequestDto;
 import com.example.banktransfer.dto.BankRequestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,13 +14,18 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+
 import com.fasterxml.jackson.databind.JsonNode;
 @Slf4j
 @Service
 public class AccountInfoService {
-    static String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
-    static String vapgUrl = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData=";
+    //static String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
+    static String url = Constants.ACCTNM_URL;
+    static String vapgUrl = Constants.VAPG_URL;
 
+    static String SECR_KEY = Constants.VAPG_SECR_KEY;
+    static String TRT_INST_CD = Constants.TRT_INST_CD;
+    static  String BANK_CD = Constants.BANK_CD;
 
     public static Boolean getAccountName(AccountRequestDto accountRequestDto) throws JsonProcessingException {
 
@@ -140,19 +146,16 @@ public class AccountInfoService {
     }
 
     public static Integer getBalance() {
-        String SECR_KEY;
-        String KEY;
-        String TRT_INST_CD;
-        String BANK_CD;
+        String KEY = Constants.VAPG_KEY[2];
         String TRSC_SEQ_NO;
 
-        String domain = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData=";
-        String req = "{\"SECR_KEY\":\"LYgZORKYJ9FtneV5XMwN\",\"KEY\":\"6140\",\"TRT_INST_CD\":\"02042091\",\"BANK_CD\":\"020\",\"TRSC_SEQ_NO\":\"114145666120\"}";
-        domain += req;
+        String req = "{\"SECR_KEY\":\""+SECR_KEY+"\",\"KEY\":\""+KEY+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"114145669120\"}";
+        vapgUrl += req;
+        log.info("vapgUrl... getBalance {}", vapgUrl);
 
         String WDRW_CAN_AMT = null;
         try {
-            URL url = new URL(domain);
+            URL url = new URL(vapgUrl);
             HttpsURLConnection http = (HttpsURLConnection) url.openConnection();
             http.setRequestMethod("GET");
             http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
@@ -176,7 +179,12 @@ public class AccountInfoService {
     }
 
     public static void transferMoney() {
-        vapgUrl = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData={\"SECR_KEY\":\"LYgZORKYJ9FtneV5XMwN\",\"KEY\":\"6120\",\"TRT_INST_CD\":\"02042091\",\"BANK_CD\":\"020\",\"TRSC_SEQ_NO\":\"653653753245\",\"RCV_BNK_CD\":\"004\",\"RCV_ACCT_NO\":\"87050100045847\",\"WDRW_ACCT_NO\":\"0000000000000000\",\"TRSC_AMT\":\"10\",\"WDRW_ACCT_NM\":\"류인혜\"}";
+        String KEY = Constants.VAPG_KEY[0];
+        String WDRW_ACCT_NO = Constants.WDRW_ACCT_NO;
+        String WDRW_ACCT_NM = Constants.WDRW_ACCT_NM;
+
+        vapgUrl += "{\"SECR_KEY\":\""+SECR_KEY+"\",\"KEY\":\""+KEY+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"693653753245\",\"RCV_BNK_CD\":\"004\",\"RCV_ACCT_NO\":\"87050100045847\",\"WDRW_ACCT_NO\":\""+WDRW_ACCT_NO+"\",\"TRSC_AMT\":\"10\",\"WDRW_ACCT_NM\":\""+WDRW_ACCT_NM+"\"}";
+        log.info("vapgUrl...tranferMoney {}", vapgUrl);
 
         boolean transferRes = getTranferInfo(vapgUrl);
     }
@@ -189,7 +197,7 @@ public class AccountInfoService {
             HttpsURLConnection http = (HttpsURLConnection) url.openConnection();
             http.setRequestMethod("POST");
             http.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
-            System.out.println(http.getResponseCode()+" "+http.getResponseMessage());
+            log.info(http.getResponseCode()+" "+http.getResponseMessage());
 
             JsonNode jsonNode = getReturnNode(http);
             log.info("transfer response ... {} ", jsonNode);
@@ -211,7 +219,7 @@ public class AccountInfoService {
                 result = false;
             }
         } catch (MalformedURLException e) {
-            System.out.println("MalformedURLException");
+            log.info("MalformedURLException");
         } catch (IOException e) {
         }
         return result;
