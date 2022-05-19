@@ -1,6 +1,5 @@
 package com.example.banktransfer.controller;
 import com.example.banktransfer.dto.AccountRequestDto;
-import com.example.banktransfer.dto.BankRequestDto;
 import com.example.banktransfer.service.AccountInfoService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 public class AccountInfoController {
     @PostMapping("/checkAccountName")
     Boolean getAccountName(@RequestBody AccountRequestDto accountRequestDto) throws JsonProcessingException {
-        return AccountInfoService.getAccountName(accountRequestDto);
     }
 
     @GetMapping("/bankTransfer")
