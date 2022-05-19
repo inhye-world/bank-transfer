@@ -25,7 +25,7 @@ public class AccountInfoService {
 
     static String VAPG_SECR_KEY = Constants.VAPG_SECR_KEY;
 
-    static String[] VAPG_KEY;
+    static String[] VAPG_KEY = Constants.VAPG_KEY;
     static String TRT_INST_CD = Constants.TRT_INST_CD;
     static  String BANK_CD = Constants.BANK_CD;
     public static JsonNode setConnection(String domain) {
@@ -148,19 +148,16 @@ public class AccountInfoService {
 
     public static Integer getBalance() {
         String TRSC_SEQ_NO;
-
+        log.info(VAPG_KEY[2]);
         String req = "{\"SECR_KEY\":\""+VAPG_SECR_KEY+"\",\"KEY\":\""+VAPG_KEY[2]+"\",\"TRT_INST_CD\":\""+TRT_INST_CD+"\",\"BANK_CD\":\""+BANK_CD+"\",\"TRSC_SEQ_NO\":\"114145669120\"}";
-        vapgUrl += req;
+        String domain = vapgUrl + req;
         log.info("vapgUrl... getBalance {}", vapgUrl);
-
-        String domain = url + req;
-        String WDRW_CAN_AMT = null;
 
         JsonNode result = setConnection(domain);
         String code = result.get("RESP_CD").toString().substring(1, result.get("RESP_CD").toString().length() - 1);
         String completed = "0000";
         if (completed.equals(code)) {
-            WDRW_CAN_AMT = result.get("WDRW_CAN_AMT").toString().substring(1, result.get("WDRW_CAN_AMT").toString().length() - 1);
+            String WDRW_CAN_AMT = result.get("WDRW_CAN_AMT").toString().substring(1, result.get("WDRW_CAN_AMT").toString().length() - 1);
             return Integer.parseInt(WDRW_CAN_AMT);
         }
         return 0;
