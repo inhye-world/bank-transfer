@@ -1,6 +1,7 @@
 package com.example.banktransfer.service;
 import com.example.banktransfer.dto.AccountRequestDto;
 import com.example.banktransfer.dto.BankRequestDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -9,18 +10,16 @@ import javax.net.ssl.HttpsURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 @Slf4j
 @Service
 public class AccountInfoService {
-    public static Boolean getAccountName(AccountRequestDto accountRequestDto) {
-
-        String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
+    static String url = "https://dev2.coocon.co.kr:8443/sol/gateway/acctnm_rcms_wapi.jsp?JSONData=";
+    static String vapgUrl = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData=";
+    public static Boolean getAccountName(AccountRequestDto accountRequestDto) throws JsonProcessingException {
 
         AccountRequestDto dto = AccountRequestDto.builder()
                 .BANK_CD(getBankCode(accountRequestDto.getBANK_CD()))
@@ -41,10 +40,13 @@ public class AccountInfoService {
                 .REQ_DATA(tmp)
                 .build();
 
-
-        String req = bankRequestDto.toString();
+        ObjectMapper mapper = new ObjectMapper();
+        String req = mapper.writeValueAsString(bankRequestDto);
 
         String domain = url + req;
+
+        log.info("domain... {} ",  domain);
+
         String accountName = getAccountInfo(domain);
         if (dto.getNAME().equals(accountName)){
             log.info("계좌 조회에 성공했습니다.");
@@ -63,7 +65,7 @@ public class AccountInfoService {
             System.out.println(http.getResponseCode()+" "+http.getResponseMessage());
 
             JsonNode jsonNode = getReturnNode(http);
-            System.out.println(jsonNode);
+            log.info("jsonNode ... {} ", jsonNode);
 
             String code = jsonNode.get("RSLT_CD").toString().substring(1,jsonNode.get("RSLT_CD").toString().length()-1);
             String completed = "000";
@@ -80,8 +82,10 @@ public class AccountInfoService {
     }
 
     public static JsonNode getReturnNode( HttpsURLConnection connection ) throws IOException {
+        log.info("contentType... {}" , connection.getContentType());
+
         BufferedReader in = new BufferedReader( new InputStreamReader(
-                connection.getInputStream(), "EUC-KR" ) );
+                connection.getInputStream(), "UTF-8") );
         StringBuffer buffer = new StringBuffer();
         String decodedString;
         while( ( decodedString = in.readLine() ) != null ) {
@@ -114,5 +118,47 @@ public class AccountInfoService {
             }
         };
         return bankList.get(bank_cd);
+    }
+
+    public static void transferMoney() {
+        vapgUrl = "https://dev2.coocon.co.kr:8443/sol/gateway/vapg_wapi.jsp?JSONData={\"SECR_KEY\":\"LYgZORKYJ9FtneV5XMwN\",\"KEY\":\"6120\",\"TRT_INST_CD\":\"02042091\",\"BANK_CD\":\"020\",\"TRSC_SEQ_NO\":\"653653753245\",\"RCV_BNK_CD\":\"004\",\"RCV_ACCT_NO\":\"87050100045847\",\"WDRW_ACCT_NO\":\"0000000000000000\",\"TRSC_AMT\":\"10\",\"WDRW_ACCT_NM\":\"류인혜\"}";
+
+        boolean transferRes = getTranferInfo(vapgUrl);
+    }
+
+    public static boolean getTranferInfo(String domain){
+        boolean result = true;
+
+        try {
+            URL url = new URL(domain);
+            HttpsURLConnection http = (HttpsURLConnection) url.openConnection();
+            http.setRequestMethod("POST");
+            http.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
+            System.out.println(http.getResponseCode()+" "+http.getResponseMessage());
+
+            JsonNode jsonNode = getReturnNode(http);
+            log.info("transfer response ... {} ", jsonNode);
+
+            String code = jsonNode.get("RESP_CD").toString().substring(1,jsonNode.get("RESP_CD").toString().length()-1);
+            String msg = jsonNode.get("RESP_MSG").toString().substring(1,jsonNode.get("RESP_MSG").toString().length()-1);
+
+            log.info("RESP_CD : {}, RESP_MSG : {}", code, msg);
+            String completed = "0000";
+
+            if (completed.equals(code)){
+                String rcvAccount = jsonNode.get("RCV_ACCT_NO").toString().substring(1,jsonNode.get("RCV_ACCT_NO").toString().length()-1);
+                String acctName = jsonNode.get("RCV_ACCT_NM").toString().substring(1,jsonNode.get("RCV_ACCT_NM").toString().length()-1);
+                String trscAmt = jsonNode.get("TRST_AMT").toString().substring(1,jsonNode.get("TRST_AMT").toString().length()-1);
+                String balAmt = jsonNode.get("BAL_AMT").toString().substring(1,jsonNode.get("BAL_AMT").toString().length()-1);
+                log.info("{}님의 {} 계좌로 {}원 입급 완료되었습니다. 잔액 {}원", acctName, rcvAccount, trscAmt, balAmt);
+                result = true;
+            }else{
+                result = false;
+            }
+        } catch (MalformedURLException e) {
+            System.out.println("MalformedURLException");
+        } catch (IOException e) {
+        }
+        return result;
     }
 }
