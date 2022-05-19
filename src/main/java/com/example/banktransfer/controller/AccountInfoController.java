@@ -7,11 +7,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1")
 public class AccountInfoController {
     @PostMapping("/checkAccountName")
-    Boolean getAccountName(@RequestBody AccountRequestDto accountRequestDto) throws JsonProcessingException {
+    Boolean getAccountName(@RequestBody AccountRequestDto accountRequestDto){
+        return AccountInfoService.getAccountName(accountRequestDto);
+    }
+
+    @GetMapping("/checkBalance")
+    Integer getAccountName(){
+        return AccountInfoService.getBalance();
     }
 
     @GetMapping("/bankTransfer")
-    void transferAndCheckAccount() throws JsonProcessingException {
-        AccountInfoService.transferMoney();
+    Boolean transferAndCheckAccount(){
+        return AccountInfoService.sendMoney();
     }
 }
